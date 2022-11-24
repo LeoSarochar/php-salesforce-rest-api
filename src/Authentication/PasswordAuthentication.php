@@ -1,8 +1,8 @@
 <?php
 
-namespace bjsmasth\Salesforce\Authentication;
+namespace lsarochar\Salesforce\Authentication;
 
-use bjsmasth\Salesforce\Exception\SalesforceAuthentication;
+use lsarochar\Salesforce\Exception\SalesforceAuthentication;
 use GuzzleHttp\Client;
 
 class PasswordAuthentication implements AuthenticationInterface
@@ -27,14 +27,36 @@ class PasswordAuthentication implements AuthenticationInterface
     {
         $client = new Client();
 
-        $request = $client->request('post', "{$this->endPoint}services/oauth2/token", ['form_params' => $this->options]);
-        $response = json_decode($request->getBody(), true);
+        $request = $client->request('POST', "{$this->endPoint}/services/Soap/u/42", [
+            'headers' => [
+                'Content-Type' => 'text/xml',
+                'SOAPAction' => '""'
+            ],
+            'body' => '<se:Envelope xmlns:se="http://schemas.xmlsoap.org/soap/envelope/">,
+            <se:Header/>
+            <se:Body>
+            <login xmlns="urn:partner.soap.sforce.com">
+                <username>' . $this->options['username'] . '</username>
+                <password>' . $this->options['password'] . '</password>
+            </login>
+            </se:Body>
+        </se:Envelope>'
+        ]);
 
+
+        $response = $request->getBody();
         if ($response) {
-            $this->access_token = $response['access_token'];
-            $this->instance_url = $response['instance_url'];
+            $pattern = '/<sessionId>(.*)<\/sessionId>/';
+            preg_match($pattern, $response, $matches);
+            $this->access_token = $matches[1];
+            $pattern = '/<serverUrl>(.*)<\/serverUrl>/';
+            preg_match($pattern, $response, $matches);
+            $this->instance_url = "https://epitech.my.salesforce.com/";
 
-            $_SESSION['salesforce'] = $response;
+            $_SESSION['salesforce'] = [
+                'access_token' => $this->access_token,
+                'instance_url' => $this->instance_url
+            ];
         } else {
             throw new SalesforceAuthentication($request->getBody());
         }
