@@ -1,6 +1,6 @@
 <?php
 
-namespace bjsmasth\Salesforce\Authentication;
+namespace lsarochar\Salesforce\Authentication;
 
 interface AuthenticationInterface
 {
